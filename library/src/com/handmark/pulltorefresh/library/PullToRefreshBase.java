@@ -308,6 +308,9 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 
 	@Override
 	public final boolean onTouchEvent(MotionEvent event) {
+		if (mCurrentSmoothScrollRunnable != null) {
+			mCurrentSmoothScrollRunnable.stop();
+		}
 
 		if (!isPullToRefreshEnabled()) {
 			return false;
