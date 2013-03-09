@@ -245,7 +245,8 @@ public abstract class LoadingLayout extends FrameLayout implements ILoadingLayou
 		}
 
 		if (null != mSubHeaderText) {
-			mSubHeaderText.setVisibility(View.GONE);
+			// ## commented out by kaiseh
+//			mSubHeaderText.setVisibility(View.GONE);
 		}
 	}
 
