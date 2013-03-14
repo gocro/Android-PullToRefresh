@@ -32,7 +32,7 @@ import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 
 import com.handmark.pulltorefresh.library.internal.FlipLoadingLayout;
 import com.handmark.pulltorefresh.library.internal.LoadingLayout;
@@ -40,7 +40,7 @@ import com.handmark.pulltorefresh.library.internal.RotateLoadingLayout;
 import com.handmark.pulltorefresh.library.internal.Utils;
 import com.handmark.pulltorefresh.library.internal.ViewCompat;
 
-public abstract class PullToRefreshBase<T extends View> extends LinearLayout implements IPullToRefresh<T> {
+public abstract class PullToRefreshBase<T extends View> extends RelativeLayout implements IPullToRefresh<T> {
 
 	// ===========================================================
 	// Constants
@@ -64,6 +64,8 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 	static final String STATE_SCROLLING_REFRESHING_ENABLED = "ptr_disable_scrolling";
 	static final String STATE_SHOW_REFRESHING_VIEW = "ptr_show_refreshing_view";
 	static final String STATE_SUPER = "ptr_super";
+
+	private static final int WRAPPER_ID = 1;
 
 	// ===========================================================
 	// Fields
@@ -843,100 +845,35 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 		return bundle;
 	}
 
-	@Override
-	protected final void onSizeChanged(int w, int h, int oldw, int oldh) {
-		if (DEBUG) {
-			Log.d(LOG_TAG, String.format("onSizeChanged. W: %d, H: %d", w, h));
-		}
-
-		super.onSizeChanged(w, h, oldw, oldh);
-
-		// We need to update the header/footer when our size changes
+	protected void onLayout(boolean changed, int l, int t, int r, int b) {
 		refreshLoadingViewsSize();
-
-		// Update the Refreshable View layout
-		refreshRefreshableViewSize(w, h);
-
-		/**
-		 * As we're currently in a Layout Pass, we need to schedule another one
-		 * to layout any changes we've made here
-		 */
-		post(new Runnable() {
-			@Override
-			public void run() {
-				requestLayout();
-			}
-		});
+		super.onLayout(changed, l, t, r, b);
 	}
 
 	/**
-	 * Re-measure the Loading Views height, and adjust internal padding as
-	 * necessary
+	 * Re-measure the Loading Views height
 	 */
 	protected final void refreshLoadingViewsSize() {
 		final int maximumPullScroll = (int) (getMaximumPullScroll() * 1.2f);
-
-		int pLeft = getPaddingLeft();
-		int pTop = getPaddingTop();
-		int pRight = getPaddingRight();
-		int pBottom = getPaddingBottom();
 
 		switch (getPullToRefreshScrollDirection()) {
 			case HORIZONTAL:
 				if (mMode.showHeaderLoadingLayout()) {
 					mHeaderLayout.setWidth(maximumPullScroll);
-					pLeft = -maximumPullScroll;
-				} else {
-					pLeft = 0;
 				}
 
 				if (mMode.showFooterLoadingLayout()) {
 					mFooterLayout.setWidth(maximumPullScroll);
-					pRight = -maximumPullScroll;
-				} else {
-					pRight = 0;
 				}
 				break;
 
 			case VERTICAL:
 				if (mMode.showHeaderLoadingLayout()) {
 					mHeaderLayout.setHeight(maximumPullScroll);
-					pTop = -maximumPullScroll;
-				} else {
-					pTop = 0;
 				}
 
 				if (mMode.showFooterLoadingLayout()) {
 					mFooterLayout.setHeight(maximumPullScroll);
-					pBottom = -maximumPullScroll;
-				} else {
-					pBottom = 0;
-				}
-				break;
-		}
-
-		if (DEBUG) {
-			Log.d(LOG_TAG, String.format("Setting Padding. L: %d, T: %d, R: %d, B: %d", pLeft, pTop, pRight, pBottom));
-		}
-		setPadding(pLeft, pTop, pRight, pBottom);
-	}
-
-	protected final void refreshRefreshableViewSize(int width, int height) {
-		// We need to set the Height of the Refreshable View to the same as
-		// this layout
-		LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) mRefreshableViewWrapper.getLayoutParams();
-
-		switch (getPullToRefreshScrollDirection()) {
-			case HORIZONTAL:
-				if (lp.width != width) {
-					lp.width = width;
-					mRefreshableViewWrapper.requestLayout();
-				}
-				break;
-			case VERTICAL:
-				if (lp.height != height) {
-					lp.height = height;
-					mRefreshableViewWrapper.requestLayout();
 				}
 				break;
 		}
@@ -1026,13 +963,13 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 	protected void updateUIForMode() {
 		// We need to use the correct LayoutParam values, based on scroll
 		// direction
-		final LinearLayout.LayoutParams lp = getLoadingLayoutLayoutParams();
 
 		// Remove Header, and then add Header Loading View again if needed
 		if (this == mHeaderLayout.getParent()) {
 			removeView(mHeaderLayout);
 		}
 		if (mMode.showHeaderLoadingLayout()) {
+			LayoutParams lp = getLoadingLayoutLayoutParams(true);
 			addViewInternal(mHeaderLayout, 0, lp);
 		}
 
@@ -1041,6 +978,7 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 			removeView(mFooterLayout);
 		}
 		if (mMode.showFooterLoadingLayout()) {
+			LayoutParams lp = getLoadingLayoutLayoutParams(false);
 			addViewInternal(mFooterLayout, lp);
 		}
 
@@ -1054,10 +992,11 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 
 	private void addRefreshableView(Context context, T refreshableView) {
 		mRefreshableViewWrapper = new FrameLayout(context);
+		mRefreshableViewWrapper.setId(WRAPPER_ID);
 		mRefreshableViewWrapper.addView(refreshableView, ViewGroup.LayoutParams.MATCH_PARENT,
 				ViewGroup.LayoutParams.MATCH_PARENT);
 
-		addViewInternal(mRefreshableViewWrapper, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
+		addViewInternal(mRefreshableViewWrapper, new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.MATCH_PARENT));
 	}
 
@@ -1075,17 +1014,6 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 
 	@SuppressWarnings("deprecation")
 	private void init(Context context, AttributeSet attrs) {
-		switch (getPullToRefreshScrollDirection()) {
-			case HORIZONTAL:
-				setOrientation(LinearLayout.HORIZONTAL);
-				break;
-			case VERTICAL:
-			default:
-				setOrientation(LinearLayout.VERTICAL);
-				break;
-		}
-
-		setGravity(Gravity.CENTER);
 
 		ViewConfiguration config = ViewConfiguration.get(context);
 		mTouchSlop = config.getScaledTouchSlop();
@@ -1215,16 +1143,20 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 		}
 	}
 
-	private LinearLayout.LayoutParams getLoadingLayoutLayoutParams() {
+	private LayoutParams getLoadingLayoutLayoutParams(boolean header) {
+		LayoutParams lp;
 		switch (getPullToRefreshScrollDirection()) {
 			case HORIZONTAL:
-				return new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
-						LinearLayout.LayoutParams.MATCH_PARENT);
+				lp = new LayoutParams(LayoutParams.WRAP_CONTENT,
+						LayoutParams.MATCH_PARENT);
+				lp.addRule(header ? LEFT_OF : RIGHT_OF, WRAPPER_ID);
 			case VERTICAL:
 			default:
-				return new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
-						LinearLayout.LayoutParams.WRAP_CONTENT);
+				lp = new LayoutParams(LayoutParams.MATCH_PARENT,
+						LayoutParams.WRAP_CONTENT);
+				lp.addRule(header ? ABOVE : BELOW, WRAPPER_ID);
 		}
+		return lp;
 	}
 
 	private int getMaximumPullScroll() {

@@ -64,6 +64,9 @@ public abstract class LoadingLayout extends FrameLayout implements ILoadingLayou
 	private CharSequence mRefreshingLabel;
 	private CharSequence mReleaseLabel;
 
+	private int width;
+	private int height;
+
 	public LoadingLayout(Context context, final Mode mode, final Orientation scrollDirection, TypedArray attrs) {
 		super(context);
 		mMode = mode;
@@ -181,15 +184,24 @@ public abstract class LoadingLayout extends FrameLayout implements ILoadingLayou
 	}
 
 	public final void setHeight(int height) {
-		ViewGroup.LayoutParams lp = (ViewGroup.LayoutParams) getLayoutParams();
-		lp.height = height;
+		this.height = height;
 		requestLayout();
 	}
 
 	public final void setWidth(int width) {
-		ViewGroup.LayoutParams lp = (ViewGroup.LayoutParams) getLayoutParams();
-		lp.width = width;
+		this.width = width;
 		requestLayout();
+	}
+
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		if (width > 0) {
+			widthMeasureSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY);
+		}
+		if (height > 0) {
+			heightMeasureSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY);
+		}
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 	}
 
 	public final int getContentSize() {
