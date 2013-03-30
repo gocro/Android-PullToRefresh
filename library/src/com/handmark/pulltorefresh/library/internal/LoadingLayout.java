@@ -185,12 +185,10 @@ public abstract class LoadingLayout extends FrameLayout implements ILoadingLayou
 
 	public final void setHeight(int height) {
 		this.height = height;
-		requestLayout();
 	}
 
 	public final void setWidth(int width) {
 		this.width = width;
-		requestLayout();
 	}
 
 	@Override

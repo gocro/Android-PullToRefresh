@@ -845,16 +845,18 @@ public abstract class PullToRefreshBase<T extends View> extends RelativeLayout i
 		return bundle;
 	}
 
-	protected void onLayout(boolean changed, int l, int t, int r, int b) {
-		refreshLoadingViewsSize();
-		super.onLayout(changed, l, t, r, b);
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		int width = MeasureSpec.getSize(widthMeasureSpec);
+		int height = MeasureSpec.getSize(heightMeasureSpec);
+		refreshLoadingViewsSize(width, height);
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 	}
 
 	/**
 	 * Re-measure the Loading Views height
 	 */
-	protected final void refreshLoadingViewsSize() {
-		final int maximumPullScroll = (int) (getMaximumPullScroll() * 1.2f);
+	protected final void refreshLoadingViewsSize(int width, int height) {
+		final int maximumPullScroll = (int) (getMaximumPullScroll(width, height) * 1.2f);
 
 		switch (getPullToRefreshScrollDirection()) {
 			case HORIZONTAL:
@@ -891,7 +893,7 @@ public abstract class PullToRefreshBase<T extends View> extends RelativeLayout i
 		}
 
 		// Clamp value to with pull scroll range
-		final int maximumPullScroll = getMaximumPullScroll();
+		final int maximumPullScroll = getMaximumPullScroll(getWidth(), getHeight());
 		value = Math.min(maximumPullScroll, Math.max(-maximumPullScroll, value));
 
 		if (mLayoutVisibilityChangesEnabled) {
@@ -983,11 +985,13 @@ public abstract class PullToRefreshBase<T extends View> extends RelativeLayout i
 		}
 
 		// Hide Loading Views
-		refreshLoadingViewsSize();
+		refreshLoadingViewsSize(getWidth(), getHeight());
 
 		// If we're not using Mode.BOTH, set mCurrentMode to mMode, otherwise
 		// set it to pull down
 		mCurrentMode = (mMode != Mode.BOTH) ? mMode : Mode.PULL_FROM_START;
+
+		requestLayout();
 	}
 
 	private void addRefreshableView(Context context, T refreshableView) {
@@ -1159,13 +1163,13 @@ public abstract class PullToRefreshBase<T extends View> extends RelativeLayout i
 		return lp;
 	}
 
-	private int getMaximumPullScroll() {
+	private int getMaximumPullScroll(int width, int height) {
 		switch (getPullToRefreshScrollDirection()) {
 			case HORIZONTAL:
-				return Math.round(getWidth() / FRICTION);
+				return Math.round(width / FRICTION);
 			case VERTICAL:
 			default:
-				return Math.round(getHeight() / FRICTION);
+				return Math.round(height / FRICTION);
 		}
 	}
 
